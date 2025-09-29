@@ -183,7 +183,6 @@
         document.addEventListener('DOMContentLoaded', () => {
 
             const BLOCK_SIZE = 40;
-            const COOLDOWN_TIME = 20 * 60 * 1000; // 20 minutes
 
             let wordBlocks = [];
             let slabBlocks = [];
@@ -194,8 +193,6 @@
             let filteredWords = [];
             let blockCooldowns = {};
             let practiceCounts = {};
-            let cooldownInterval = null;
-
 
             let currentBlockData = null;
             let currentWordIndex = 0;
@@ -348,13 +345,6 @@
                 return container;
             }
 
-            function formatRemainingTime(ms) {
-                const totalSeconds = Math.ceil(ms / 1000);
-                const minutes = Math.floor(totalSeconds / 60);
-                const seconds = totalSeconds % 60;
-                return `<i class="fas fa-hourglass-half mr-2"></i> ${minutes}:${seconds.toString().padStart(2, '0')}`;
-            }
-
             function renderBlocks() {
                 blockContainer.innerHTML = '';
                 const allBlockGroups = [
@@ -407,18 +397,6 @@
                                         </div>`;
                                 }
                             }
-                            
-                            // Universal Cooldown Logic
-                            if (blockCooldowns[blockTitle]) {
-                                const completionTime = blockCooldowns[blockTitle];
-                                const endTime = completionTime + COOLDOWN_TIME;
-                                if (Date.now() < endTime) {
-                                    button.disabled = true;
-                                    button.classList.add('opacity-60', 'cursor-not-allowed', 'on-cooldown');
-                                    button.dataset.cooldownEnd = endTime;
-                                    button.innerHTML = formatRemainingTime(endTime - Date.now());
-                                }
-                            }
 
                             if (!button.disabled) {
                                 button.classList.add(group.hover, 'transition-transform', 'transform', 'hover:scale-105');
@@ -427,31 +405,6 @@
                             gridEl.appendChild(button);
                         });
                         blockContainer.appendChild(groupEl);
-                    }
-                });
-            }
-
-            function updateAllCooldownTimers() {
-                document.querySelectorAll('.on-cooldown').forEach(button => {
-                    const endTime = parseInt(button.dataset.cooldownEnd, 10);
-                    const remaining = endTime - Date.now();
-
-                    if (remaining > 0) {
-                        button.innerHTML = formatRemainingTime(remaining);
-                    } else {
-                        const title = button.dataset.blockTitle;
-                        if (title) {
-                            delete blockCooldowns[title];
-                            saveUserData();
-                        }
-                        button.disabled = false;
-                        button.classList.remove('opacity-60', 'cursor-not-allowed', 'on-cooldown');
-                        button.removeAttribute('data-cooldown-end');
-                        button.innerHTML = button.dataset.originalContent;
-                        // Re-add hover styles
-                         if (button.className.includes('bg-teal-500')) button.classList.add('hover:bg-teal-600', 'transition-transform', 'transform', 'hover:scale-105');
-                         if (button.className.includes('bg-indigo-500')) button.classList.add('hover:bg-indigo-600', 'transition-transform', 'transform', 'hover:scale-105');
-                         if (button.className.includes('bg-rose-500')) button.classList.add('hover:bg-rose-600', 'transition-transform', 'transform', 'hover:scale-105');
                     }
                 });
             }
@@ -597,18 +550,7 @@
             }
 
             function showCompletionScreen() {
-                const title = practiceTitle.textContent;
-                const titleLower = title.toLowerCase();
-
-                if (titleLower.includes('block')) {
-                    blockCooldowns[title] = Date.now();
-                } else if ((titleLower.includes('slab') || titleLower.includes('bar')) && practiceCounts[title] >= 3) {
-                    blockCooldowns[title] = Date.now();
-                    delete practiceCounts[title]; 
-                }
-                
                 saveUserData();
-
                 practiceInterface.classList.add('hidden');
                 completionScreen.classList.remove('hidden');
                 finalScoreEl.textContent = `You got ${correctCount} out of ${wordsInCurrentBlock.length} correct.`;
@@ -618,16 +560,7 @@
             function goToMainMenu() {
                 clearTimeouts();
                 
-                const title = practiceTitle.textContent;
-                const titleLower = title.toLowerCase();
-
                 if (wordsInCurrentBlock.length > 0) {
-                     if (titleLower.includes('block')) {
-                        blockCooldowns[title] = Date.now();
-                    } else if ((titleLower.includes('slab') || titleLower.includes('bar')) && practiceCounts[title] >= 3) {
-                        blockCooldowns[title] = Date.now();
-                        delete practiceCounts[title];
-                    }
                     saveUserData();
                 }
 
@@ -657,10 +590,6 @@
             }
             
             function setupEventListeners() {
-                if (!cooldownInterval) {
-                    cooldownInterval = setInterval(updateAllCooldownTimers, 1000);
-                }
-
                 checkBtn.addEventListener('click', checkSpelling);
                 spellInput.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') checkSpelling();
