@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Practice App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a202c;
+            background-image: radial-gradient(circle at 1px 1px, #374151 1px, transparent 0);
+            background-size: 20px 20px;
+        }
+
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes score-update {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+            100% { transform: scale(1); }
+        }
+
+        .score-updated {
+            animation: score-update 0.3s ease-in-out;
+        }
+
+        @keyframes shrink {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
+
+        .shrinking-bar {
+            animation: shrink 10s linear forwards;
+        }
+    </style>
+</head>
+
+<body class="text-white">
+
+    <div id="app-container" class="min-h-screen flex items-center justify-center p-4">
+
+        <!-- Main Menu -->
+        <div id="main-menu" class="w-full max-w-4xl mx-auto fade-in">
+            <header class="text-center mb-8">
+                <h1 id="main-header" class="text-4xl font-bold tracking-tight text-teal-300">Spelling Practice</h1>
+                <p class="text-gray-400 mt-2">Choose a block to start practicing.</p>
+            </header>
+            <div class="text-center mb-8">
+                <p class="text-gray-400 text-sm">YOUR TOTAL SCORE</p>
+                <p id="main-menu-score" class="text-5xl font-bold text-white">0</p>
+            </div>
+            <div id="block-container" class="space-y-6">
+                <!-- Word blocks will be dynamically inserted here -->
+            </div>
+            <div class="mt-8 flex justify-center space-x-4">
+                 <button id="add-words-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-plus mr-2"></i>Add New Words
+                </button>
+                 <button id="reset-score-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-undo mr-2"></i>Reset Progress
+                </button>
+            </div>
+        </div>
+
+        <!-- Practice Interface -->
+        <div id="practice-interface" class="w-full max-w-2xl hidden fade-in">
+             <div class="glassmorphism rounded-2xl shadow-2xl p-6 md:p-8">
+                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Left/Top Section: Score & Progress -->
+                     <div class="md:col-span-1 md:border-r md:border-gray-600 md:pr-6 flex flex-col justify-between">
+                          <div>
+                             <div class="flex items-center justify-between mb-4">
+                                 <h2 id="practice-title" class="text-xl font-bold text-teal-300">Block 1</h2>
+                                 <button id="home-btn" class="text-gray-400 hover:text-white transition">
+                                     <i class="fas fa-times text-2xl"></i>
+                                </button>
+                            </div>
+                            <div class="text-center bg-gray-900/50 p-4 rounded-lg">
+                                <p class="text-gray-400 text-sm">TOTAL SCORE</p>
+                                <p id="live-score" class="text-4xl font-bold text-white">0</p>
+                            </div>
+                        </div>
+
+                         <div class="mt-6">
+                             <p id="progress-text" class="text-sm text-gray-400 text-center mb-2">Word 1 of 20</p>
+                             <div class="w-full bg-gray-700 rounded-full h-2.5">
+                                 <div id="progress-bar" class="bg-teal-500 h-2.5 rounded-full transition-all duration-300" style="width: 5%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right/Bottom Section: Practice Area -->
+                     <div class="md:col-span-2 flex flex-col justify-center">
+                         <!-- Definition removed as per request -->
+                         <div class="mt-6 flex items-center justify-center space-x-3">
+                             <input type="text" id="spell-input" class="w-full bg-gray-900/50 border-2 border-gray-600 rounded-lg py-3 px-4 text-center text-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition" placeholder="Type the word here..." autocomplete="off" spellcheck="false">
+                             <button id="speak-btn" class="bg-gray-700 hover:bg-gray-600 p-3 rounded-full text-xl transition transform hover:scale-110 aspect-square flex items-center justify-center">
+                                 <i class="fas fa-volume-up"></i>
+                            </button>
+                        </div>
+                         <div id="feedback-message" class="mt-4 text-center min-h-[24px] hidden items-center justify-center"></div>
+                        
+                         <div id="timer-container" class="w-full h-1 bg-gray-700 rounded-full mt-2 hidden">
+                             <div id="timer-bar" class="h-1 bg-rose-500 rounded-full"></div>
+                        </div>
+
+                         <div id="correct-answer-options" class="mt-2 flex space-x-2 hidden">
+                             <button id="add-to-slab-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition w-full text-sm">
+                                 <i class="fas fa-plus-circle mr-1"></i>Keep Practicing
+                            </button>
+                             <button id="delete-word-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition w-full text-sm">
+                                 <i class="fas fa-trash-alt mr-1"></i>Delete Word
+                            </button>
+                        </div>
+
+                         <div id="check-btn-container" class="mt-6">
+                             <button id="check-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition w-full">Check Spelling</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Completion Screen -->
+        <div id="completion-screen" class="text-center hidden fade-in">
+             <div class="glassmorphism p-8 rounded-2xl shadow-2xl">
+                 <h2 class="text-3xl font-bold text-teal-300">Block Complete!</h2>
+                 <p id="final-score" class="text-xl mt-4">You got 18 out of 20 correct.</p>
+                 <p id="final-points" class="text-lg mt-2 text-gray-300">Total Points: 150</p>
+                 <div class="mt-8 flex justify-center">
+                     <button id="main-menu-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">Main Menu</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Add Word Modal -->
+    <div id="add-word-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
+            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white">&times;</button>
+            <h3 class="text-2xl font-bold mb-6 text-teal-300">Add a New Word</h3>
+            <form id="add-word-form">
+                <div class="mb-4">
+                    <label for="new-word" class="block text-gray-400 mb-2">Word</label>
+                    <input type="text" id="new-word" class="w-full bg-gray-900/50 border-2 border-gray-600 rounded-lg py-2 px-3 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" required>
+                </div>
+                <!-- Definition input removed as per request -->
+                <button type="submit" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition">Add Word</button>
+            </form>
+        </div>
+    </div>
+
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="words.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyC3KlFLZOHYDRKa0k8fkCFwaMNStcv7JCQ",
+                authDomain: "spelling-45b13.firebaseapp.com",
+                projectId: "spelling-45b13",
+                storageBucket: "spelling-45b13.firebasestorage.app",
+                messagingSenderId: "508437399649",
+                appId: "1:508437399649:web:d0ccc685f895d700308220",
+                measurementId: "G-S0J0XLYTHL"
+            };
+
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+            const auth = firebase.auth();
+
+            let userId = null;
+            let userDataUnsubscribe = null;
+
+            const BLOCK_SIZE = 20;
+            const COOLDOWN_TIME = 20 * 60 * 1000; // 20 minutes
+
+            let wordBlocks = [];
+            let slabBlocks = [];
+            let barBlocks = [];
+            let slabs = [];
+            let bars = [];
+            let deletedWords = [];
+            let filteredWords = [];
+            let blockCooldowns = {};
+            let practiceCounts = {};
+            let cooldownInterval = null;
+
+
+            let currentBlockData = null;
+            let currentWordIndex = 0;
+            let correctCount = 0;
+            let totalPoints = 0;
+            let wordsInCurrentBlock = [];
+            let selectedVoice = null;
+            let incorrectFeedbackTimeoutId = null;
+            let nextWordTimeoutId = null;
+
+
+            const mainMenu = document.getElementById('main-menu');
+            const practiceInterface = document.getElementById('practice-interface');
+            const completionScreen = document.getElementById('completion-screen');
+            const blockContainer = document.getElementById('block-container');
+            const mainMenuScore = document.getElementById('main-menu-score');
+
+            const practiceTitle = document.getElementById('practice-title');
+            const spellInput = document.getElementById('spell-input');
+            const speakBtn = document.getElementById('speak-btn');
+            const checkBtn = document.getElementById('check-btn');
+            const checkBtnContainer = document.getElementById('check-btn-container');
+            const homeBtn = document.getElementById('home-btn');
+            
+            const liveScoreEl = document.getElementById('live-score');
+            const feedbackMessageEl = document.getElementById('feedback-message');
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+
+            const finalScoreEl = document.getElementById('final-score');
+            const finalPointsEl = document.getElementById('final-points');
+            const mainMenuBtn = document.getElementById('main-menu-btn');
+            
+            const addWordsBtn = document.getElementById('add-words-btn');
+            const resetScoreBtn = document.getElementById('reset-score-btn');
+            const addWordModal = document.getElementById('add-word-modal');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const addWordForm = document.getElementById('add-word-form');
+            const correctOptionsContainer = document.getElementById('correct-answer-options');
+            const addToSlabBtn = document.getElementById('add-to-slab-btn');
+            const deleteWordBtn = document.getElementById('delete-word-btn');
+            const timerContainer = document.getElementById('timer-container');
+            const timerBar = document.getElementById('timer-bar');
+
+            async function init() {
+                loadVoices();
+                if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = loadVoices;
+                }
+                setupEventListeners();
+                
+                auth.onAuthStateChanged(async user => {
+                    if (user) {
+                        userId = user.uid;
+                        await loadUserData();
+                    } else {
+                        await auth.signInAnonymously();
+                    }
+                });
+            }
+            
+            async function loadUserData() {
+                return new Promise((resolve) => {
+                    if (userDataUnsubscribe) userDataUnsubscribe();
+                    const docRef = db.collection('userData').doc(userId);
+                    userDataUnsubscribe = docRef.onSnapshot(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            totalPoints = data.totalPoints || 0;
+                            slabs = [...(data.slabs || [])];
+                            bars = [...(data.bars || [])];
+                            deletedWords = [...(data.deletedWords || [])];
+                            blockCooldowns = data.blockCooldowns || {};
+                            practiceCounts = data.practiceCounts || {};
+                        } else {
+                            totalPoints = 0;
+                            slabs = [];
+                            bars = [];
+                            deletedWords = [];
+                            blockCooldowns = {};
+                            practiceCounts = {};
+                        }
+                        filterMasterWordList();
+                        updateScoreDisplay();
+                        updateAndRenderBlocks();
+                        resolve();
+                    }, error => {
+                        console.error("Error loading user data:", error);
+                        resolve();
+                    });
+                });
+            }
+
+            async function saveUserData() {
+                if (!userId) return;
+                try {
+                    const userData = { totalPoints, slabs, bars, deletedWords, blockCooldowns, practiceCounts };
+                    await db.collection('userData').doc(userId).set(userData, { merge: true });
+                } catch (error) {
+                    console.error("Error saving user data: ", error);
+                }
+            }
+
+            // Assumes 'allWords' from words.js is now an array of strings.
+            function filterMasterWordList() {
+                filteredWords = allWords.filter(word => !deletedWords.includes(word));
+            }
+            
+            function clearTimeouts() {
+                if (incorrectFeedbackTimeoutId) {
+                    clearTimeout(incorrectFeedbackTimeoutId);
+                    incorrectFeedbackTimeoutId = null;
+                }
+                 if (nextWordTimeoutId) {
+                    clearTimeout(nextWordTimeoutId);
+                    nextWordTimeoutId = null;
+                }
+                timerContainer.classList.add('hidden');
+                timerBar.classList.remove('shrinking-bar');
+            }
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+            }
+
+            function loadVoices() {
+                const voices = speechSynthesis.getVoices();
+                if (voices.length === 0) return;
+                selectedVoice = voices.find(voice => voice.name === 'Google US English') ||
+                                voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google')) ||
+                                voices.find(voice => voice.lang === 'en-US' && !voice.localService) ||
+                                voices.find(voice => voice.lang === 'en-US') ||
+                                voices[0];
+            }
+
+            function updateAndRenderBlocks() {
+                wordBlocks = [];
+                for (let i = 0; i < filteredWords.length; i += BLOCK_SIZE) {
+                    wordBlocks.push(filteredWords.slice(i, i + BLOCK_SIZE));
+                }
+                
+                slabBlocks = [];
+                for (let i = 0; i < slabs.length; i += BLOCK_SIZE) {
+                    slabBlocks.push(slabs.slice(i, i + BLOCK_SIZE));
+                }
+
+                barBlocks = [];
+                for (let i = 0; i < bars.length; i += BLOCK_SIZE) {
+                    barBlocks.push(bars.slice(i, i + BLOCK_SIZE));
+                }
+                renderBlocks();
+            }
+            
+            function createGroupContainer(title) {
+                const container = document.createElement('div');
+                const titleEl = document.createElement('h3');
+                titleEl.className = 'text-lg font-semibold text-gray-400 mb-3 pl-2';
+                titleEl.textContent = title;
+                container.appendChild(titleEl);
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4';
+                container.appendChild(grid);
+                return container;
+            }
+
+            function formatRemainingTime(ms) {
+                const totalSeconds = Math.ceil(ms / 1000);
+                const minutes = Math.floor(totalSeconds / 60);
+                const seconds = totalSeconds % 60;
+                return `<i class="fas fa-hourglass-half mr-2"></i> ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            function renderBlocks() {
+                blockContainer.innerHTML = '';
+                const allBlockGroups = [
+                    { title: 'Word Blocks', blocks: wordBlocks, color: 'bg-teal-500', hover: 'hover:bg-teal-600', type: 'block' },
+                    { title: 'Practice Slabs', blocks: slabBlocks, color: 'bg-indigo-500', hover: 'hover:bg-indigo-600', type: 'slab' },
+                    { title: 'Challenge Bars', blocks: barBlocks, color: 'bg-rose-500', hover: 'hover:bg-rose-600', type: 'bar' },
+                ];
+
+                allBlockGroups.forEach(group => {
+                    if (group.blocks.length > 0) {
+                        const groupEl = createGroupContainer(group.title);
+                        const gridEl = groupEl.querySelector('.grid');
+                        
+                        group.blocks.forEach((block, index) => {
+                            const button = document.createElement('button');
+                            const blockNum = index + 1;
+                            
+                            button.className = `${group.color} text-white font-bold py-6 rounded-lg shadow-lg flex flex-col items-center justify-center text-center`;
+                            const originalContent = `<span class="text-2xl">${blockNum}</span><span class="text-xs mt-1">${group.title.split(' ')[1]}</span>`;
+                            button.innerHTML = originalContent;
+                            button.dataset.originalContent = originalContent;
+
+                            let blockTitle;
+                            if(group.type === 'block') blockTitle = `Block ${blockNum}`;
+                            if(group.type === 'slab') blockTitle = `Slab ${blockNum}`;
+                            if(group.type === 'bar') blockTitle = `Bar ${blockNum}`;
+                            button.dataset.blockTitle = blockTitle;
+
+                            button.addEventListener('click', () => startPractice(block, blockTitle));
+                            
+                            // Score lock & Studied logic
+                            const isStandardBlock = group.type === 'block';
+                            if (isStandardBlock) {
+                                const nextBlockRequiredScore = blockNum * 3500;
+                                const requiredScore = (blockNum - 1) * 3500;
+                                
+                                if (blockNum < group.blocks.length && totalPoints >= nextBlockRequiredScore) {
+                                    button.disabled = true;
+                                    button.className = `bg-gray-700 text-white font-bold py-6 rounded-lg shadow-lg flex flex-col items-center justify-center opacity-60 cursor-not-allowed`;
+                                    button.innerHTML = `<span class="text-lg font-semibold">Studied</span>`;
+                                } else if (blockNum > 1 && totalPoints < requiredScore) {
+                                    button.disabled = true;
+                                    button.classList.add('opacity-60', 'cursor-not-allowed', 'relative');
+                                    button.innerHTML += `
+                                        <div class="absolute inset-0 bg-black bg-opacity-60 rounded-lg flex items-center justify-center">
+                                            <span class="flex items-center text-sm bg-gray-800 px-2 py-1 rounded-full">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="mr-1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                                ${requiredScore.toLocaleString()}
+                                            </span>
+                                        </div>`;
+                                }
+                            }
+                            
+                            // Universal Cooldown Logic
+                            if (blockCooldowns[blockTitle]) {
+                                const completionTime = blockCooldowns[blockTitle];
+                                const endTime = completionTime + COOLDOWN_TIME;
+                                if (Date.now() < endTime) {
+                                    button.disabled = true;
+                                    button.classList.add('opacity-60', 'cursor-not-allowed', 'on-cooldown');
+                                    button.dataset.cooldownEnd = endTime;
+                                    button.innerHTML = formatRemainingTime(endTime - Date.now());
+                                }
+                            }
+
+                            if (!button.disabled) {
+                                button.classList.add(group.hover, 'transition-transform', 'transform', 'hover:scale-105');
+                            }
+
+                            gridEl.appendChild(button);
+                        });
+                        blockContainer.appendChild(groupEl);
+                    }
+                });
+            }
+
+            function updateAllCooldownTimers() {
+                document.querySelectorAll('.on-cooldown').forEach(button => {
+                    const endTime = parseInt(button.dataset.cooldownEnd, 10);
+                    const remaining = endTime - Date.now();
+
+                    if (remaining > 0) {
+                        button.innerHTML = formatRemainingTime(remaining);
+                    } else {
+                        const title = button.dataset.blockTitle;
+                        if (title) {
+                            delete blockCooldowns[title];
+                            saveUserData();
+                        }
+                        button.disabled = false;
+                        button.classList.remove('opacity-60', 'cursor-not-allowed', 'on-cooldown');
+                        button.removeAttribute('data-cooldown-end');
+                        button.innerHTML = button.dataset.originalContent;
+                        // Re-add hover styles
+                         if (button.className.includes('bg-teal-500')) button.classList.add('hover:bg-teal-600', 'transition-transform', 'transform', 'hover:scale-105');
+                         if (button.className.includes('bg-indigo-500')) button.classList.add('hover:bg-indigo-600', 'transition-transform', 'transform', 'hover:scale-105');
+                         if (button.className.includes('bg-rose-500')) button.classList.add('hover:bg-rose-600', 'transition-transform', 'transform', 'hover:scale-105');
+                    }
+                });
+            }
+
+            function startPractice(block, title) {
+                clearTimeouts();
+
+                const titleLower = title.toLowerCase();
+                if (titleLower.includes('slab') || titleLower.includes('bar')) {
+                    practiceCounts[title] = (practiceCounts[title] || 0) + 1;
+                }
+
+                currentBlockData = block;
+                wordsInCurrentBlock = [...block];
+                shuffleArray(wordsInCurrentBlock);
+                practiceTitle.textContent = title;
+                currentWordIndex = 0;
+                correctCount = 0;
+                mainMenu.classList.add('hidden');
+                practiceInterface.classList.remove('hidden');
+                loadWord();
+            }
+
+            function loadWord() {
+                if (currentWordIndex < wordsInCurrentBlock.length) {
+                    const word = wordsInCurrentBlock[currentWordIndex];
+                    spellInput.value = '';
+                    spellInput.disabled = false;
+                    spellInput.focus();
+                    spellInput.classList.remove('border-green-500', 'border-red-500');
+                    spellInput.classList.add('border-gray-600', 'focus:border-teal-500');
+                    feedbackMessageEl.classList.add('hidden');
+                    
+                    correctOptionsContainer.classList.add('hidden');
+                    checkBtnContainer.classList.remove('hidden');
+
+                    updateProgress();
+                } else {
+                    showCompletionScreen();
+                }
+            }
+
+            function speakWord() {
+                if ('speechSynthesis' in window && wordsInCurrentBlock[currentWordIndex]) {
+                    const word = wordsInCurrentBlock[currentWordIndex];
+                    const utterance = new SpeechSynthesisUtterance(word);
+                    if (selectedVoice) {
+                        utterance.voice = selectedVoice;
+                    }
+                    utterance.rate = 0.9;
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    feedbackMessageEl.textContent = 'Sorry, text-to-speech is not supported.';
+                    feedbackMessageEl.classList.add('incorrect');
+                    feedbackMessageEl.classList.remove('hidden');
+                }
+            }
+
+            function checkSpelling() {
+                clearTimeouts();
+                if (spellInput.disabled) return;
+                const typedWord = spellInput.value.trim().toLowerCase();
+                const correctWord = wordsInCurrentBlock[currentWordIndex].toLowerCase();
+                const isCorrect = typedWord === correctWord;
+                const practiceTitleText = practiceTitle.textContent.toLowerCase();
+
+                feedbackMessageEl.classList.remove('hidden');
+                
+                if (isCorrect) {
+                    correctCount++;
+                    
+                    if (practiceTitleText.includes('bar')) {
+                        totalPoints += 4;
+                    } else if (practiceTitleText.includes('slab')) {
+                        totalPoints += 2;
+                    } else {
+                        totalPoints += 10;
+                    }
+                    updateScoreDisplay(true);
+
+                    feedbackMessageEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Correct!`;
+                    feedbackMessageEl.classList.add('correct');
+                    feedbackMessageEl.classList.remove('incorrect');
+                    spellInput.classList.add('border-green-500');
+                    spellInput.classList.remove('border-red-500', 'border-gray-600', 'focus:border-teal-500');
+                    spellInput.disabled = true;
+
+                    const currentWord = wordsInCurrentBlock[currentWordIndex];
+                    
+                    correctOptionsContainer.classList.remove('hidden');
+                    
+                    addToSlabBtn.disabled = false;
+                    addToSlabBtn.innerHTML = `<i class="fas fa-plus-circle mr-1"></i>Keep Practicing`;
+                    addToSlabBtn.dataset.word = currentWord;
+
+                    deleteWordBtn.disabled = false;
+                    deleteWordBtn.innerHTML = `<i class="fas fa-trash-alt mr-1"></i>Delete Word`;
+                    deleteWordBtn.dataset.word = currentWord;
+
+                    checkBtnContainer.classList.add('hidden');
+
+                    nextWordTimeoutId = setTimeout(() => {
+                        currentWordIndex++;
+                        loadWord();
+                    }, 2000);
+
+                } else {
+                    if (practiceTitleText.includes('slab') || practiceTitleText.includes('bar')) {
+                        totalPoints = Math.max(0, totalPoints - 10);
+                    } else {
+                        totalPoints = Math.max(0, totalPoints - 5);
+                    }
+                    updateScoreDisplay(false);
+                    const correctSpelling = wordsInCurrentBlock[currentWordIndex];
+                    
+                    feedbackMessageEl.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                        Correct spelling: <strong class="font-semibold">${correctSpelling}</strong>
+                    `;
+                    feedbackMessageEl.classList.add('incorrect');
+                    feedbackMessageEl.classList.remove('correct');
+                    spellInput.disabled = true;
+                    
+                    const incorrectDelay = (practiceTitleText.includes('slab') || practiceTitleText.includes('bar')) ? 1000 : 3000;
+                    
+                    incorrectFeedbackTimeoutId = setTimeout(() => {
+                        currentWordIndex++;
+                        loadWord();
+                    }, incorrectDelay);
+
+                    spellInput.classList.add('border-red-500');
+                    spellInput.classList.remove('border-green-500', 'border-gray-600', 'focus:border-teal-500');
+
+                    const word = wordsInCurrentBlock[currentWordIndex];
+                    
+                    if (practiceTitleText.includes('slab')) {
+                        if (!bars.includes(word)) bars.push(word);
+                    } else if (!practiceTitleText.includes('bar')) {
+                        if (!slabs.includes(word)) slabs.push(word);
+                    }
+                }
+                saveUserData();
+            }
+
+            function showCompletionScreen() {
+                const title = practiceTitle.textContent;
+                const titleLower = title.toLowerCase();
+
+                if (titleLower.includes('block')) {
+                    blockCooldowns[title] = Date.now();
+                } else if ((titleLower.includes('slab') || titleLower.includes('bar')) && practiceCounts[title] >= 3) {
+                    blockCooldowns[title] = Date.now();
+                    delete practiceCounts[title]; 
+                }
+                
+                saveUserData();
+
+                practiceInterface.classList.add('hidden');
+                completionScreen.classList.remove('hidden');
+                finalScoreEl.textContent = `You got ${correctCount} out of ${wordsInCurrentBlock.length} correct.`;
+                finalPointsEl.textContent = `Your new total score is ${totalPoints.toLocaleString()} points.`;
+            }
+
+            function goToMainMenu() {
+                clearTimeouts();
+                
+                const title = practiceTitle.textContent;
+                const titleLower = title.toLowerCase();
+
+                if (wordsInCurrentBlock.length > 0) {
+                     if (titleLower.includes('block')) {
+                        blockCooldowns[title] = Date.now();
+                    } else if ((titleLower.includes('slab') || titleLower.includes('bar')) && practiceCounts[title] >= 3) {
+                        blockCooldowns[title] = Date.now();
+                        delete practiceCounts[title];
+                    }
+                    saveUserData();
+                }
+
+                wordsInCurrentBlock = [];
+
+                practiceInterface.classList.add('hidden');
+                completionScreen.classList.add('hidden');
+                mainMenu.classList.remove('hidden');
+                loadUserData();
+            }
+
+            function updateProgress() {
+                const totalWords = wordsInCurrentBlock.length;
+                const currentNum = currentWordIndex + 1;
+                progressText.textContent = `Word ${currentNum} of ${totalWords}`;
+                const percent = totalWords > 0 ? (currentNum / totalWords) * 100 : 0;
+                progressBar.style.width = `${percent}%`;
+            }
+            
+            function updateScoreDisplay(animate = false) {
+                 liveScoreEl.textContent = totalPoints.toLocaleString();
+                 mainMenuScore.textContent = totalPoints.toLocaleString();
+                 if (animate) {
+                     liveScoreEl.classList.add('score-updated');
+                     setTimeout(() => liveScoreEl.classList.remove('score-updated'), 300);
+                 }
+            }
+            
+            function setupEventListeners() {
+                if (!cooldownInterval) {
+                    cooldownInterval = setInterval(updateAllCooldownTimers, 1000);
+                }
+
+                checkBtn.addEventListener('click', checkSpelling);
+                spellInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') checkSpelling();
+                });
+                spellInput.addEventListener('focus', () => {
+                    if (spellInput.disabled) return;
+                    clearTimeouts();
+                    if (!feedbackMessageEl.classList.contains('correct')) {
+                        feedbackMessageEl.classList.add('hidden');
+                        feedbackMessageEl.classList.remove('incorrect');
+                    }
+                });
+                speakBtn.addEventListener('click', speakWord);
+                homeBtn.addEventListener('click', goToMainMenu);
+                
+                mainMenuBtn.addEventListener('click', goToMainMenu);
+
+                addToSlabBtn.addEventListener('click', () => {
+                    const wordData = addToSlabBtn.dataset.word;
+                    if (wordData && !slabs.includes(wordData)) {
+                        slabs.push(wordData);
+                        saveUserData();
+                        addToSlabBtn.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Added!`;
+                        addToSlabBtn.disabled = true;
+                        deleteWordBtn.disabled = true;
+                    }
+                });
+
+                 deleteWordBtn.addEventListener('click', () => {
+                    const wordData = deleteWordBtn.dataset.word;
+                    if (wordData && !deletedWords.includes(wordData)) {
+                        deletedWords.push(wordData);
+                        
+                        let slabIndex = slabs.indexOf(wordData);
+                        if (slabIndex !== -1) slabs.splice(slabIndex, 1);
+                        let barIndex = bars.indexOf(wordData);
+                        if (barIndex !== -1) bars.splice(barIndex, 1);
+
+                        saveUserData();
+                        deleteWordBtn.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Deleted!`;
+                        deleteWordBtn.disabled = true;
+                        addToSlabBtn.disabled = true;
+                    }
+                });
+                
+                addWordsBtn.addEventListener('click', () => addWordModal.classList.remove('hidden'));
+                resetScoreBtn.addEventListener('click', () => {
+                    const pin = prompt("To reset your score and all progress, enter the PIN: 2542");
+                    if (pin === "2542") {
+                        totalPoints = 0;
+                        slabs = [];
+                        bars = [];
+                        deletedWords = [];
+                        blockCooldowns = {};
+                        practiceCounts = {};
+                        saveUserData().then(() => {
+                           alert("Your progress has been reset.");
+                           updateAndRenderBlocks();
+                        });
+                    } else if (pin) {
+                        alert("Incorrect PIN.");
+                    }
+                });
+                closeModalBtn.addEventListener('click', () => addWordModal.classList.add('hidden'));
+                addWordForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const newWord = document.getElementById('new-word').value.trim();
+                    if(newWord){
+                        allWords.push(newWord);
+                        filterMasterWordList();
+                        
+                        updateAndRenderBlocks();
+                        addWordModal.classList.add('hidden');
+                        addWordForm.reset();
+                        alert(`Word "${newWord}" added! It will be available in the relevant block.`);
+                    }
+                });
+            }
+
+            init();
+        });
+    </script>
+</body>
+
+</html>
