@@ -133,9 +133,6 @@
                              <button id="add-to-slab-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition w-full text-sm">
                                  <i class="fas fa-plus-circle mr-1"></i>Keep Practicing
                             </button>
-                             <button id="delete-word-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition w-full text-sm">
-                                 <i class="fas fa-trash-alt mr-1"></i>Delete Word
-                            </button>
                         </div>
 
                          <div id="check-btn-container" class="mt-6">
@@ -233,7 +230,8 @@
             const addWordForm = document.getElementById('add-word-form');
             const correctOptionsContainer = document.getElementById('correct-answer-options');
             const addToSlabBtn = document.getElementById('add-to-slab-btn');
-            const deleteWordBtn = document.getElementById('delete-word-btn');
+            // The delete word button is removed from the HTML, so this reference is no longer needed.
+            // const deleteWordBtn = document.getElementById('delete-word-btn'); 
             const timerContainer = document.getElementById('timer-container');
             const timerBar = document.getElementById('timer-bar');
 
@@ -253,7 +251,8 @@
                     totalPoints = data.totalPoints || 0;
                     slabs = [...(data.slabs || [])];
                     bars = [...(data.bars || [])];
-                    deletedWords = [...(data.deletedWords || [])];
+                    // This is the fix: Force the deletedWords array to be empty on every load.
+                    deletedWords = []; 
                     blockCooldowns = data.blockCooldowns || {};
                     practiceCounts = data.practiceCounts || {};
                 } else {
@@ -278,8 +277,8 @@
                 }
             }
 
-            // Assumes 'allWords' from words.js is now an array of strings.
             function filterMasterWordList() {
+                // Now that deletedWords is always empty, this will include all words from allWords.
                 filteredWords = allWords.filter(word => !deletedWords.includes(word));
             }
             
@@ -477,10 +476,6 @@
                     addToSlabBtn.innerHTML = `<i class="fas fa-plus-circle mr-1"></i>Keep Practicing`;
                     addToSlabBtn.dataset.word = currentWord;
 
-                    deleteWordBtn.disabled = false;
-                    deleteWordBtn.innerHTML = `<i class="fas fa-trash-alt mr-1"></i>Delete Word`;
-                    deleteWordBtn.dataset.word = currentWord;
-
                     checkBtnContainer.classList.add('hidden');
 
                     nextWordTimeoutId = setTimeout(() => {
@@ -591,26 +586,10 @@
                         saveUserData();
                         addToSlabBtn.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Added!`;
                         addToSlabBtn.disabled = true;
-                        deleteWordBtn.disabled = true;
                     }
                 });
 
-                 deleteWordBtn.addEventListener('click', () => {
-                    const wordData = deleteWordBtn.dataset.word;
-                    if (wordData && !deletedWords.includes(wordData)) {
-                        deletedWords.push(wordData);
-                        
-                        let slabIndex = slabs.indexOf(wordData);
-                        if (slabIndex !== -1) slabs.splice(slabIndex, 1);
-                        let barIndex = bars.indexOf(wordData);
-                        if (barIndex !== -1) bars.splice(barIndex, 1);
-
-                        saveUserData();
-                        deleteWordBtn.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Deleted!`;
-                        deleteWordBtn.disabled = true;
-                        addToSlabBtn.disabled = true;
-                    }
-                });
+                // The event listener for the delete button has been removed.
                 
                 addWordsBtn.addEventListener('click', () => addWordModal.classList.remove('hidden'));
                 resetScoreBtn.addEventListener('click', () => {
