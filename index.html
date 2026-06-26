@@ -102,12 +102,12 @@
                     
                     const utterance = new SpeechSynthesisUtterance(word);
                     
-                    // iPhone/iOS এর জন্য কঠোরভাবে বাংলা ল্যাঙ্গুয়েজ ট্যাগ সেট করা
-                    utterance.lang = 'bn-BD'; 
+                    // iOS-এর ডিফল্ট ইঞ্জিন 'bn-IN' (ইন্ডিয়ান বাংলা) সবচেয়ে ভালো সাপোর্ট করে
+                    utterance.lang = 'bn-IN'; 
                     
                     const voices = window.speechSynthesis.getVoices();
                     
-                    // শুধুমাত্র বাংলা ভয়েস খুঁজবে, অন্য কোনো ভাষার ভয়েস ফলব্যাক হিসেবে নেবে না
+                    // শুধুমাত্র বাংলা ভয়েস খুঁজবে
                     let bestVoice = voices.find(v => v.lang === 'bn-BD' || v.lang === 'bn_BD') || 
                                     voices.find(v => v.lang === 'bn-IN' || v.lang === 'bn_IN') ||
                                     voices.find(v => v.lang.toLowerCase().includes('bn'));
@@ -141,7 +141,9 @@
                 const firstWord = wordsToPractice[0];
                 setCurrentWord(firstWord);
                 setQueue(wordsToPractice.slice(1));
-                setTimeout(() => speakWord(firstWord), 500);
+                
+                // iOS Fix: setTimeout বাদ দেওয়া হয়েছে, কারণ iOS-এ অ্যাসিঙ্ক্রোনাস স্পিচ ব্লক বা ডিফল্ট ইংলিশ ভয়েস ট্রিগার করে
+                speakWord(firstWord);
             };
 
             // বাংলা ইউনিকোড নরমালাইজেশন ফাংশন
