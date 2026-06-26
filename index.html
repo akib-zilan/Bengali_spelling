@@ -1,633 +1,370 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spelling Practice App</title>
+    <title>বিসিএস বানান শুদ্ধি অনুশীলন</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel-এর নির্দিষ্ট ও স্ট্যাবল ভার্সন ব্যবহার করা হয়েছে এরর সমাধানের জন্য -->
+    <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
+
     <style>
-        body {
-            font-family: 'Hind Siliguri', sans-serif;
-            background-color: #1a202c;
-            background-image: radial-gradient(circle at 1px 1px, #374151 1px, transparent 0);
-            background-size: 20px 20px;
-        }
-
-        .glassmorphism {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .fade-in {
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes score-update {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.25); }
-            100% { transform: scale(1); }
-        }
-
-        .score-updated {
-            animation: score-update 0.3s ease-in-out;
-        }
-
-        @keyframes shrink {
-            from { width: 100%; }
-            to { width: 0%; }
-        }
-
-        .shrinking-bar {
-            animation: shrink 10s linear forwards;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-pulse-fast { animation: pulseFast 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulseFast { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
     </style>
 </head>
+<body class="bg-slate-100 min-h-screen">
+    <div id="root"></div>
 
-<body class="text-white">
+    <script type="text/babel" data-presets="react" data-type="module">
+        const { useState, useEffect, useRef } = React;
 
-    <div id="app-container" class="min-h-screen flex items-center justify-center p-4">
+        // SVG Icons Components
+        const PlayCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>;
+        const Volume2 = () => <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>;
+        const ArrowRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+        const CheckCircle2 = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>;
+        const XCircle = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>;
+        const Trophy = () => <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>;
+        const RefreshCw = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>;
+        const HomeIcon = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+        const Eye = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>;
 
-        <!-- Main Menu -->
-        <div id="main-menu" class="w-full max-w-4xl mx-auto fade-in">
-            <header class="text-center mb-8">
-                <h1 id="main-header" class="text-4xl font-bold tracking-tight text-teal-300">Spelling Practice</h1>
-                <p class="text-gray-400 mt-2">Choose a block to start practicing.</p>
-            </header>
-            <div class="text-center mb-8">
-                <p class="text-gray-400 text-sm">YOUR TOTAL SCORE</p>
-                <p id="main-menu-score" class="text-5xl font-bold text-white">0</p>
-            </div>
-            <div id="block-container" class="space-y-6">
-                <!-- Word blocks will be dynamically inserted here -->
-            </div>
-            <div class="mt-8 flex justify-center space-x-4">
-                 <button id="add-words-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105 shadow-lg">
-                    <i class="fas fa-plus mr-2"></i>Add New Words
-                </button>
-                 <button id="reset-score-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-transform transform hover:scale-105 shadow-lg">
-                    <i class="fas fa-undo mr-2"></i>Reset Progress
-                </button>
-            </div>
-        </div>
+        const initialWordList = [
+            'ধরন', 'নিরীক্ষণ', 'গৃহিনী', 'শূণ্য', 'মনোহারিণী', 'পসারিণী', 'চাণক্য', 'পুণ্য', 'গণনা', 'প্রণয়ন', 'নিরপরাধী', 'প্রণিপাত', 'অভ্যন্তরীণ', 'অন্বেষণ', 'শিরশ্ছেদ',
+            'অনূঢ়', 'অনূপে', 'অনূর্ধ্ব', 'অনূদিত', 'উদীচী', 'প্রতীচী', 'সমীচীন', 'মনীষী', 'ভাগীরথী', 'মহীয়সী', 
+            'শারীরিক', 'মরীচিকা', 'প্রতীতি', 'দধীচি', 'বীচি', 'বীথি', 'অপিনিহিতি', 'কিচিরমিচির', 'নিরিবিলি', 
+            'মিটিমিটি', 'কিরীটিনী', 'নিশীথিনী', 'পিপীলিকা', 'বিভীষিকা', 'নিমীলিত', 'নিপীড়িত', 'মুমূর্ষু', 
+            'মুহূর্ত', 'দুরূহ', 'শুশ্রূষা', 'মুহুর্মুহু', 'নূতন', 'নূপুর', 'ন্যূন', 'কৃত্তিবাস', 'ভৌগোলিক', 
+            'ব্যাখ্যা', 'ব্যাপ্ত', 'ব্যাকরণ', 'মোহ্যমান', 'বিপৎসংকুল', 'ব্যাকুল', 'ব্যাধি', 'ব্যথিত', 'ব্যাঘাত', 
+            'ঔজ্জ্বল্য', 'সরস্বতী', 'উল্লিখিত', 'কথোপকথন', 'শশিভূষণ', 'দুর্নীতি', 'ত্রিনয়ন', 'যদ্যপি', 
+            'প্রজ্বলিত', 'ধ্বংস', 'আনুষঙ্গিক', 'ক্ষুৎপিপাসা', 'প্রোজ্জ্বল', 'সুষুপ্ত', 'সৌন্দর্য', 'কার্যকরী', 
+            'ঐকমত্য', 'ঐকতান', 'পশ্বধাম', 'শূন্য', 'মূর্ধন্য', 'মনোমোহন', 'মনোযোগ', 'সদ্যোজাত', 'ব্যস্ত', 
+            'ব্যতীত', 'ব্যঞ্জন', 'সংস্রব', 'ব্যতিহার', 'দূষণীয়', 'আদ্যাক্ষর', 'অধোগতি', 'নিযুতি', 'চক্ষুষ্মান', 'অমাবস্যা', 'অদ্যাপি', 'সূদন', 'নির্নিমেষ', 'মনীষী', 'অধ্যবসায়', 'ভবিষ্যদ্বাণী', 'ঊর্মি', 'একান্নবর্তী', 'দূরীভূত', 'আকাঙ্ক্ষা', 'তিতিক্ষা', 'নিশীথ', 'দুরবস্থা', 'প্রতিদ্বন্দ্বী', 'গোধূলি', 'সংশপ্তক', 'শুচিস্মিতা', 'সান্ত্বনা', 'ধাঁধা', 'শ্বশুর', 'উচ্ছৃঙ্খল', 'জাজ্বল্যমান', 'তিরস্কার', 'পুরস্কার', 'আদ্যন্ত', 'বিকেন্দ্রীকরণ', 'কনীনিকা', 'অপরাহ্ণ', 'ভদ্রোচিত', 'শাশ্বত', 'শাশুড়ি', 'ন্যূনতম', 'স্বাস্থ্য', 'মাহাত্ম্য', 'দারিদ্র্য', 'প্রতিদ্বন্দ্বিতা', 'প্রতিযোগিতা', 'উচ্ছ্বাস', 'মনঃকষ্ট', 'দ্বন্দ্ব', 'অত্যধিক', 'কটূক্তি', 'ভুল', 'ভুবন', 'পক্ব', 'বিদুষী', 'ব্রাহ্মণ', 'প্রাণিবিদ্যা', 'রামায়ণ', 'ইতঃপূর্বে', 'ইতিমধ্যে', 'ইংরেজি', 'ঈষৎ', 'অহোরাত্র', 'অপাঙ্ক্তেয়', 'অন্তঃসত্ত্বা', 'অনসূয়া', 'আশ্বস্ত', 'আত্মস্থ', 'আশিস', 'আয়ত্ত', 'আত্মোৎসর্গ', 'উপর্যুক্ত', 'উদ্বৃত্ত', 'উপযোগিতা', 'ঊর্ধ্বশ্বাস', 'ঊর্ধ্ব', 'কাঙ্ক্ষিত', 'ক্ষীণজীবী', 'কৌতুক', 'কর্নেল', 'কূপমণ্ডূক', 'খোঁজাখুঁজি', 'গীতাঞ্জলি', 'গ্রামীণ', 'গড্ডলিকা', 'গার্হস্থ্য', 'ঘূর্ণিঝড়', 'চতুষ্কোণ', 'জগৎ', 'জ্যেষ্ঠ', 'জ্যোতিষ্ক', 'ঝরনা', 'ডাস্টবিন', 'পোস্ট', 'ত্রিভুজ', 'তৎক্ষণাৎ', 'দুর্গাপূজা', 'দুস্থ', 'দীর্ঘজীবী', 'দুর্ঘটনা', 'দাসত্ব', 'দৈন্য', 'দীনতা', 'সন্ন্যাসী', 'দুর্বৃত্ত', 'দৌরাত্ম্য', 'ধরণি', 'ধূলিসাৎ', 'ধারণা', 'নৈপুণ্য', 'নিগূঢ়', 'পোস্টমাস্টার', 'প্রাতরাশ', 'প্রজ্বলন', 'পাণিনি', 'ফটোকপি', 'ব্যথা', 'বাল্মীকি', 'বশীভূত', 'ব্যুৎপত্তি', 'ভূমিসাৎ', 'ভর্ৎসনা', 'মনুষ্যত্ব', 'যক্ষ্মা', 'লজ্জাকর', 'লক্ষণীয়', 'শুভাশিস', 'স্বায়ত্তশাসন', 'শিরোধার্য', 'ষাণ্মাসিক', 'সংবর্ধনা', 'সহযোগিতা', 'সুষ্ঠু', 'ব্যাবহারিক', 'পোশাক', 'ধারণ', 'ঊষা', 'মাধ্যাকর্ষণ', 'শিহরণ', 'ইদানীং', 'জ্ঞানভূষিত', 'সুষম', 'কনিষ্ঠ', 'পুনর্মিলনী', 'সুধী', 'বীভৎস', 'অদ্ভুত', 'শ্বশ্রূ', 'রূপালি'
+        ];
 
-        <!-- Practice Interface -->
-        <div id="practice-interface" class="w-full max-w-2xl hidden fade-in">
-             <div class="glassmorphism rounded-2xl shadow-2xl p-6 md:p-8">
-                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Left/Top Section: Score & Progress -->
-                     <div class="md:col-span-1 md:border-r md:border-gray-600 md:pr-6 flex flex-col justify-between">
-                          <div>
-                             <div class="flex items-center justify-between mb-4">
-                                 <h2 id="practice-title" class="text-xl font-bold text-teal-300">Block 1</h2>
-                                 <button id="home-btn" class="text-gray-400 hover:text-white transition">
-                                     <i class="fas fa-times text-2xl"></i>
+        function App() {
+            const [appState, setAppState] = useState('welcome');
+            const [blocks, setBlocks] = useState([]);
+            const [currentBlock, setCurrentBlock] = useState(null);
+            const [queue, setQueue] = useState([]);
+            const [currentWord, setCurrentWord] = useState('');
+            const [userInput, setUserInput] = useState('');
+            const [isChecked, setIsChecked] = useState(false);
+            const [isCorrect, setIsCorrect] = useState(false);
+            const [showHint, setShowHint] = useState(false);
+            const [viewingBlockWords, setViewingBlockWords] = useState(null);
+            
+            const [totalWordsCount, setTotalWordsCount] = useState(0);
+            const [completedCount, setCompletedCount] = useState(0);
+            const inputRef = useRef(null);
+
+            // Load voices early and initialize permanent blocks
+            useEffect(() => {
+                const loadVoices = () => { window.speechSynthesis.getVoices(); };
+                loadVoices();
+                if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
+
+                // ব্রাউজারের স্টোরেজ থেকে ব্লকগুলো খোঁজার চেষ্টা (নতুন শব্দ যোগ হওয়ায় ভার্সন ৮ ব্যবহার করা হয়েছে)
+                const storedBlocks = localStorage.getItem('bcs_spelling_blocks_v8');
+                if (storedBlocks) {
+                    setBlocks(JSON.parse(storedBlocks));
+                } else {
+                    // প্রথমবার লোড হলে সফল করে ২০টি করে শব্দের ব্লক তৈরি করে সেভ করা
+                    const shuffled = [...initialWordList].sort(() => Math.random() - 0.5);
+                    const newBlocks = [];
+                    for (let i = 0; i < shuffled.length; i += 20) {
+                        const blockLetter = String.fromCharCode(65 + (i / 20)); // A, B, C, D...
+                        newBlocks.push({
+                            id: blockLetter,
+                            title: `ব্লক - ${blockLetter}`,
+                            words: shuffled.slice(i, i + 20)
+                        });
+                    }
+                    localStorage.setItem('bcs_spelling_blocks_v8', JSON.stringify(newBlocks));
+                    setBlocks(newBlocks);
+                }
+            }, []);
+
+            const speakWord = (word) => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    window.speechSynthesis.resume();
+                    
+                    const utterance = new SpeechSynthesisUtterance(word);
+                    const voices = window.speechSynthesis.getVoices();
+                    
+                    // Chrome এবং অন্যান্য ব্রাউজারের জন্য আরও গভীরভাবে বাংলা ভয়েস খোঁজা (bn-BD, bn-IN, bangla, bengali)
+                    let bestVoice = voices.find(v => 
+                        v.lang.includes('bn') || 
+                        v.name.toLowerCase().includes('bangla') || 
+                        v.name.toLowerCase().includes('bengali') ||
+                        v.lang === 'bn-BD' || 
+                        v.lang === 'bn-IN'
+                    );
+                    
+                    if (bestVoice) { 
+                        utterance.voice = bestVoice; 
+                        utterance.lang = bestVoice.lang;
+                    } else {
+                        utterance.lang = 'bn-BD'; // ভয়েস না পেলেও বাংলা ল্যাঙ্গুয়েজ ট্যাগ ফোর্স করা
+                    }
+                    
+                    utterance.rate = 0.85;
+                    window.speechSynthesis.speak(utterance);
+                }
+            };
+
+            const showWordHint = () => {
+                setShowHint(true);
+                setTimeout(() => {
+                    setShowHint(false);
+                    if (inputRef.current) inputRef.current.focus();
+                }, 1500);
+            };
+
+            const startPractice = (block) => {
+                const wordsToPractice = [...block.words];
+                setCurrentBlock(block);
+                setQueue(wordsToPractice);
+                setTotalWordsCount(wordsToPractice.length);
+                setCompletedCount(0);
+                setAppState('practice');
+                
+                const firstWord = wordsToPractice[0];
+                setCurrentWord(firstWord);
+                setQueue(wordsToPractice.slice(1));
+                setTimeout(() => speakWord(firstWord), 500);
+            };
+
+            // বাংলা ইউনিকোড নরমালাইজেশন ফাংশন
+            const normalizeBengali = (text) => {
+                if (!text) return '';
+                return text
+                    .trim()
+                    .replace(/[\u200B-\u200D\uFEFF]/g, '') // ZWNJ বা অদৃশ্য ক্যারেক্টার রিমুভ করা
+                    .normalize('NFC'); // ইউনিকোড স্ট্যান্ডার্ডাইজ করা (যেমন: য+় = য়)
+            };
+
+            const handleFormSubmit = (e) => {
+                e.preventDefault();
+                
+                if (!isChecked) {
+                    // প্রথম Enter (চেক করা)
+                    if (!userInput.trim()) return;
+
+                    // নরমালাইজ করে শব্দ দুটো মেলানো হচ্ছে
+                    const normalizedInput = normalizeBengali(userInput);
+                    const normalizedWord = normalizeBengali(currentWord);
+
+                    const correct = normalizedInput === normalizedWord;
+                    setIsCorrect(correct);
+                    setIsChecked(true);
+
+                    if (correct) {
+                        setCompletedCount(prev => prev + 1);
+                    } else {
+                        setQueue(prevQueue => [...prevQueue, currentWord]);
+                    }
+                } else {
+                    // দ্বিতীয় Enter (পরবর্তী শব্দে যাওয়া)
+                    handleNext();
+                }
+            };
+
+            const handleNext = () => {
+                if (queue.length === 0) {
+                    setAppState('finished');
+                    return;
+                }
+
+                const nextWord = queue[0];
+                setCurrentWord(nextWord);
+                setQueue(queue.slice(1));
+                setUserInput('');
+                setIsChecked(false);
+                setShowHint(false);
+                speakWord(nextWord);
+                
+                setTimeout(() => { if (inputRef.current) inputRef.current.focus(); }, 100);
+            };
+
+            const progressPercentage = totalWordsCount === 0 ? 0 : Math.round((completedCount / totalWordsCount) * 100);
+
+            return (
+                <div className="flex flex-col items-center justify-start sm:justify-center p-2 sm:p-4 py-4 sm:py-12 min-h-screen">
+                    <div className="text-center mb-4 sm:mb-8 mt-2 sm:mt-0">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">বিসিএস বানান শুদ্ধি অনুশীলন</h1>
+                        <p className="text-slate-600 text-xs sm:text-sm max-w-lg mx-auto px-2">
+                            সাউন্ড শুনতে না পেলে <strong>'?'</strong> বাটনে ক্লিক করে শব্দটি দেখে নিন এবং দ্রুত টাইপ করুন।
+                        </p>
+                    </div>
+
+                    <div className="w-full max-w-xl bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+                        {appState === 'welcome' && (
+                            <div className="p-4 sm:p-10 text-center flex flex-col items-center">
+                                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4 sm:mb-6">
+                                    <PlayCircle />
+                                </div>
+                                <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 mb-2 sm:mb-4">অনুশীলন শুরু করুন</h2>
+                                <p className="text-slate-600 text-sm sm:text-base mb-6 px-2">
+                                    মোট শব্দ: <span className="font-bold text-slate-800">{initialWordList.length}</span> টি। <br/>
+                                    সহজে শেখার জন্য শব্দগুলোকে স্থায়ী ব্লকে ভাগ করা হয়েছে।
+                                </p>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
+                                    {blocks.map(block => (
+                                        <div key={block.id} className="bg-slate-50 border-2 border-slate-200 rounded-xl flex flex-col shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
+                                            <button 
+                                                onClick={() => startPractice(block)} 
+                                                className="py-3 sm:py-4 px-4 hover:bg-blue-50 hover:border-blue-400 text-slate-700 hover:text-blue-700 font-medium flex flex-col items-center gap-1 rounded-t-xl transition-colors active:bg-blue-100"
+                                            >
+                                                <span className="text-lg sm:text-xl font-bold">{block.title}</span>
+                                                <span className="text-xs text-slate-500">{block.words.length} টি শব্দ</span>
+                                            </button>
+                                            <div className="border-t border-slate-200 w-full">
+                                                <button
+                                                    onClick={() => setViewingBlockWords(viewingBlockWords === block.id ? null : block.id)}
+                                                    className="w-full py-2.5 sm:py-2 text-xs sm:text-sm text-slate-500 hover:text-blue-600 hover:bg-slate-100 flex items-center justify-center gap-1 rounded-b-xl transition-colors active:bg-slate-200"
+                                                >
+                                                    <Eye /> {viewingBlockWords === block.id ? 'লুকান' : 'শব্দগুলো দেখুন'}
+                                                </button>
+                                            </div>
+                                            {viewingBlockWords === block.id && (
+                                                <div className="p-3 bg-white border-t border-slate-200 rounded-b-xl text-xs text-slate-600 flex flex-wrap gap-1 justify-center max-h-40 overflow-y-auto">
+                                                    {block.words.map((w, idx) => (
+                                                        <span key={idx} className="bg-slate-100 px-2 py-1 rounded border border-slate-200">{w}</span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {appState === 'practice' && (
+                            <div>
+                                <div className="bg-slate-50 border-b border-slate-100 p-3 sm:p-4">
+                                    <div className="flex justify-between items-center text-xs sm:text-sm text-slate-600 mb-2 font-medium">
+                                        <div className="flex items-center gap-2">
+                                            <button onClick={() => setAppState('welcome')} className="p-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded transition-colors active:scale-95" title="হোম স্ক্রিনে ফিরে যান">
+                                                <HomeIcon />
+                                            </button>
+                                            <span>{currentBlock?.title} | অগ্রগতি: {progressPercentage}%</span>
+                                        </div>
+                                        <span>{completedCount} / {totalWordsCount}</span>
+                                    </div>
+                                    <div className="w-full bg-slate-200 rounded-full h-2 sm:h-2.5">
+                                        <div className="bg-green-500 h-2 sm:h-2.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${progressPercentage}%` }}></div>
+                                    </div>
+                                </div>
+
+                                <div className="p-4 sm:p-8">
+                                    <div className="flex flex-col items-center mb-4 sm:mb-6">
+                                        <div className="flex gap-3 sm:gap-4">
+                                            <button onClick={() => speakWord(currentWord)} className="w-14 h-14 sm:w-16 sm:h-16 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full flex items-center justify-center transition-colors shadow-sm active:scale-90" title="আবার শুনুন">
+                                                <Volume2 />
+                                            </button>
+                                            <button type="button" onClick={showWordHint} className="w-14 h-14 sm:w-16 sm:h-16 bg-amber-100 hover:bg-amber-200 text-amber-600 rounded-full flex items-center justify-center transition-colors shadow-sm active:scale-90" title="শব্দটি দেখুন (হিন্ট)">
+                                                <span className="font-bold text-xl sm:text-2xl">?</span>
+                                            </button>
+                                        </div>
+                                        
+                                        <div className="h-10 mt-3 sm:mt-4 flex items-center justify-center">
+                                            {showHint ? (
+                                                <span className="text-xl sm:text-2xl font-bold text-amber-700 tracking-wider bg-amber-50 px-4 sm:px-6 py-2 rounded-lg border border-amber-200 animate-pulse-fast shadow-inner">
+                                                    {currentWord}
+                                                </span>
+                                            ) : (
+                                                <p className="text-slate-500 text-xs sm:text-sm">শুনতে বা বুঝতে না পারলে '?' বাটনে ক্লিক করুন</p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <form onSubmit={handleFormSubmit} className="flex flex-col gap-3 sm:gap-4">
+                                        <input
+                                            ref={inputRef}
+                                            type="text"
+                                            value={userInput}
+                                            onChange={(e) => setUserInput(e.target.value)}
+                                            readOnly={isChecked}
+                                            placeholder="বানানটি এখানে লিখুন..."
+                                            className={`w-full text-center text-xl sm:text-2xl p-3 sm:p-4 border-2 rounded-xl outline-none transition-all ${
+                                                isChecked ? (isCorrect ? 'border-green-500 bg-green-50 text-green-800' : 'border-red-500 bg-red-50 text-red-800') : 'border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200'
+                                            }`}
+                                            autoFocus autoComplete="off" spellCheck="false" autoCorrect="off" autoCapitalize="none"
+                                        />
+
+                                        {!isChecked ? (
+                                            <button type="submit" disabled={!userInput.trim()} className="w-full py-3 sm:py-4 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-400 text-white rounded-xl font-semibold text-base sm:text-lg transition-all active:scale-[0.98] mt-1 sm:mt-2">
+                                                যাচাই করুন
+                                            </button>
+                                        ) : (
+                                            <div className="mt-1 sm:mt-2 animate-fade-in">
+                                                {isCorrect ? (
+                                                    <div className="flex flex-col items-center text-green-600 gap-2 sm:gap-3">
+                                                        <div className="flex items-center gap-2 font-semibold text-lg sm:text-xl">
+                                                            <CheckCircle2 /> দারুণ! সঠিক বানান।
+                                                        </div>
+                                                        <button type="button" onClick={handleNext} className="w-full py-3 sm:py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold text-base sm:text-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 mt-1 sm:mt-2">
+                                                            পরবর্তী শব্দ <ArrowRight />
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-3 sm:gap-4">
+                                                        <div className="w-full bg-red-100 border border-red-200 text-red-700 p-3 sm:p-4 rounded-xl text-center">
+                                                            <div className="flex items-center justify-center gap-2 font-bold mb-1">
+                                                                <XCircle /> ভুল হয়েছে!
+                                                            </div>
+                                                            <div className="text-slate-600 text-xs sm:text-sm">সঠিক বানানটি হবে:</div>
+                                                            <div className="text-2xl sm:text-3xl font-bold mt-1 tracking-wide text-red-800">{currentWord}</div>
+                                                            <p className="text-[10px] sm:text-xs mt-2 opacity-80 text-red-600">শব্দটি আবার অনুশীলনের জন্য শেষে যুক্ত করা হয়েছে।</p>
+                                                        </div>
+                                                        <button type="button" onClick={handleNext} className="w-full py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-base sm:text-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                                            পরবর্তী শব্দ <ArrowRight />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </form>
+                                </div>
+                                <div className="bg-slate-50 p-2 sm:p-3 text-center text-xs text-slate-400 border-t border-slate-100">
+                                    অবশিষ্ট শব্দ: {queue.length + 1} টি
+                                </div>
+                            </div>
+                        )}
+
+                        {appState === 'finished' && (
+                            <div className="p-8 sm:p-12 text-center flex flex-col items-center">
+                                <div className="text-green-500 mb-4 sm:mb-6"><Trophy /></div>
+                                <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">অভিনন্দন!</h2>
+                                <p className="text-slate-600 text-base sm:text-lg mb-6 sm:mb-8">
+                                    আপনি <strong>{currentBlock?.title}</strong> এর সবকটি শব্দের বানান সফলভাবে আয়ত্ত করেছেন। 
+                                </p>
+                                <button onClick={() => setAppState('welcome')} className="px-6 sm:px-8 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-medium transition-all shadow-md active:scale-[0.98] flex items-center gap-2">
+                                    <RefreshCw /> অন্য ব্লক অনুশীলন করুন
                                 </button>
                             </div>
-                            <div class="text-center bg-gray-900/50 p-4 rounded-lg">
-                                <p class="text-gray-400 text-sm">TOTAL SCORE</p>
-                                <p id="live-score" class="text-4xl font-bold text-white">0</p>
-                            </div>
-                        </div>
-
-                         <div class="mt-6">
-                             <p id="progress-text" class="text-sm text-gray-400 text-center mb-2">Word 1 of 20</p>
-                             <div class="w-full bg-gray-700 rounded-full h-2.5">
-                                 <div id="progress-bar" class="bg-teal-500 h-2.5 rounded-full transition-all duration-300" style="width: 5%"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Right/Bottom Section: Practice Area -->
-                     <div class="md:col-span-2 flex flex-col justify-center">
-                         <!-- Definition removed as per request -->
-                         <div class="mt-6 flex items-center justify-center space-x-3">
-                             <input type="text" id="spell-input" class="w-full bg-gray-900/50 border-2 border-gray-600 rounded-lg py-3 px-4 text-center text-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition" placeholder="Type the word here..." autocomplete="off" spellcheck="false">
-                             <button id="speak-btn" class="bg-gray-700 hover:bg-gray-600 p-3 rounded-full text-xl transition transform hover:scale-110 aspect-square flex items-center justify-center">
-                                 <i class="fas fa-volume-up"></i>
-                            </button>
-                        </div>
-                         <div id="feedback-message" class="mt-4 text-center min-h-[24px] hidden items-center justify-center"></div>
-                        
-                         <div id="timer-container" class="w-full h-1 bg-gray-700 rounded-full mt-2 hidden">
-                             <div id="timer-bar" class="h-1 bg-rose-500 rounded-full"></div>
-                        </div>
-
-                         <div id="correct-answer-options" class="mt-2 flex space-x-2 hidden">
-                             <button id="add-to-slab-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition w-full text-sm">
-                                 <i class="fas fa-plus-circle mr-1"></i>Keep Practicing
-                            </button>
-                        </div>
-
-                         <div id="check-btn-container" class="mt-6">
-                             <button id="check-btn" class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition w-full">Check Spelling</button>
-                        </div>
+                        )}
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Completion Screen -->
-        <div id="completion-screen" class="text-center hidden fade-in">
-             <div class="glassmorphism p-8 rounded-2xl shadow-2xl">
-                 <h2 class="text-3xl font-bold text-teal-300">Block Complete!</h2>
-                 <p id="final-score" class="text-xl mt-4">You got 18 out of 20 correct.</p>
-                 <p id="final-points" class="text-lg mt-2 text-gray-300">Total Points: 150</p>
-                 <div class="mt-8 flex justify-center">
-                     <button id="main-menu-btn" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-transform transform hover:scale-105">Main Menu</button>
-                </div>
-            </div>
-        </div>
+            );
+        }
 
-    </div>
-
-    <!-- Add Word Modal -->
-    <div id="add-word-modal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden">
-        <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-md relative">
-            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white">&times;</button>
-            <h3 class="text-2xl font-bold mb-6 text-teal-300">Add a New Word</h3>
-            <form id="add-word-form">
-                <div class="mb-4">
-                    <label for="new-word" class="block text-gray-400 mb-2">Word</label>
-                    <input type="text" id="new-word" class="w-full bg-gray-900/50 border-2 border-gray-600 rounded-lg py-2 px-3 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none" required>
-                </div>
-                <!-- Definition input removed as per request -->
-                <button type="submit" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-3 px-4 rounded-lg transition">Add Word</button>
-            </form>
-        </div>
-    </div>
-
-
-    <script src="words.js"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-
-            const BLOCK_SIZE = 40;
-
-            let wordBlocks = [];
-            let slabBlocks = [];
-            let barBlocks = [];
-            let slabs = [];
-            let bars = [];
-            let deletedWords = [];
-            let filteredWords = [];
-            let blockCooldowns = {};
-            let practiceCounts = {};
-
-            let currentBlockData = null;
-            let currentWordIndex = 0;
-            let correctCount = 0;
-            let totalPoints = 0;
-            let wordsInCurrentBlock = [];
-            let selectedVoice = null;
-            let incorrectFeedbackTimeoutId = null;
-            let nextWordTimeoutId = null;
-
-
-            const mainMenu = document.getElementById('main-menu');
-            const practiceInterface = document.getElementById('practice-interface');
-            const completionScreen = document.getElementById('completion-screen');
-            const blockContainer = document.getElementById('block-container');
-            const mainMenuScore = document.getElementById('main-menu-score');
-
-            const practiceTitle = document.getElementById('practice-title');
-            const spellInput = document.getElementById('spell-input');
-            const speakBtn = document.getElementById('speak-btn');
-            const checkBtn = document.getElementById('check-btn');
-            const checkBtnContainer = document.getElementById('check-btn-container');
-            const homeBtn = document.getElementById('home-btn');
-            
-            const liveScoreEl = document.getElementById('live-score');
-            const feedbackMessageEl = document.getElementById('feedback-message');
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-
-            const finalScoreEl = document.getElementById('final-score');
-            const finalPointsEl = document.getElementById('final-points');
-            const mainMenuBtn = document.getElementById('main-menu-btn');
-            
-            const addWordsBtn = document.getElementById('add-words-btn');
-            const resetScoreBtn = document.getElementById('reset-score-btn');
-            const addWordModal = document.getElementById('add-word-modal');
-            const closeModalBtn = document.getElementById('close-modal-btn');
-            const addWordForm = document.getElementById('add-word-form');
-            const correctOptionsContainer = document.getElementById('correct-answer-options');
-            const addToSlabBtn = document.getElementById('add-to-slab-btn');
-            // The delete word button is removed from the HTML, so this reference is no longer needed.
-            // const deleteWordBtn = document.getElementById('delete-word-btn'); 
-            const timerContainer = document.getElementById('timer-container');
-            const timerBar = document.getElementById('timer-bar');
-
-            function init() {
-                loadVoices();
-                if (typeof speechSynthesis !== 'undefined' && speechSynthesis.onvoiceschanged !== undefined) {
-                    speechSynthesis.onvoiceschanged = loadVoices;
-                }
-                setupEventListeners();
-                loadUserData();
-            }
-            
-            function loadUserData() {
-                const savedData = localStorage.getItem('spellingAppData');
-                if (savedData) {
-                    const data = JSON.parse(savedData);
-                    totalPoints = data.totalPoints || 0;
-                    slabs = [...(data.slabs || [])];
-                    bars = [...(data.bars || [])];
-                    // This is the fix: Force the deletedWords array to be empty on every load.
-                    deletedWords = []; 
-                    blockCooldowns = data.blockCooldowns || {};
-                    practiceCounts = data.practiceCounts || {};
-                } else {
-                    totalPoints = 0;
-                    slabs = [];
-                    bars = [];
-                    deletedWords = [];
-                    blockCooldowns = {};
-                    practiceCounts = {};
-                }
-                filterMasterWordList();
-                updateScoreDisplay();
-                updateAndRenderBlocks();
-            }
-
-            function saveUserData() {
-                 try {
-                    const userData = { totalPoints, slabs, bars, deletedWords, blockCooldowns, practiceCounts };
-                    localStorage.setItem('spellingAppData', JSON.stringify(userData));
-                } catch (error) {
-                    console.error("Error saving user data to local storage: ", error);
-                }
-            }
-
-            function filterMasterWordList() {
-                // Now that deletedWords is always empty, this will include all words from allWords.
-                filteredWords = allWords.filter(word => !deletedWords.includes(word));
-            }
-            
-            function clearTimeouts() {
-                if (incorrectFeedbackTimeoutId) {
-                    clearTimeout(incorrectFeedbackTimeoutId);
-                    incorrectFeedbackTimeoutId = null;
-                }
-                 if (nextWordTimeoutId) {
-                    clearTimeout(nextWordTimeoutId);
-                    nextWordTimeoutId = null;
-                }
-                timerContainer.classList.add('hidden');
-                timerBar.classList.remove('shrinking-bar');
-            }
-
-            function shuffleArray(array) {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-            }
-
-            function loadVoices() {
-                const voices = speechSynthesis.getVoices();
-                if (voices.length === 0) return;
-                selectedVoice = voices.find(voice => voice.lang === 'bn-BD' && voice.name.includes('Google')) ||
-                                voices.find(voice => voice.lang === 'bn-IN' && voice.name.includes('Google')) ||
-                                voices.find(voice => voice.lang === 'bn-BD') ||
-                                voices.find(voice => voice.lang === 'bn-IN') ||
-                                voices.find(voice => voice.name === 'Google US English') ||
-                                voices.find(voice => voice.lang === 'en-US') ||
-                                voices[0];
-            }
-
-            function updateAndRenderBlocks() {
-                wordBlocks = [];
-                for (let i = 0; i < filteredWords.length; i += BLOCK_SIZE) {
-                    wordBlocks.push(filteredWords.slice(i, i + BLOCK_SIZE));
-                }
-                
-                slabBlocks = [];
-                for (let i = 0; i < slabs.length; i += BLOCK_SIZE) {
-                    slabBlocks.push(slabs.slice(i, i + BLOCK_SIZE));
-                }
-
-                barBlocks = [];
-                for (let i = 0; i < bars.length; i += BLOCK_SIZE) {
-                    barBlocks.push(bars.slice(i, i + BLOCK_SIZE));
-                }
-                renderBlocks();
-            }
-            
-            function createGroupContainer(title) {
-                const container = document.createElement('div');
-                const titleEl = document.createElement('h3');
-                titleEl.className = 'text-lg font-semibold text-gray-400 mb-3 pl-2';
-                titleEl.textContent = title;
-                container.appendChild(titleEl);
-                const grid = document.createElement('div');
-                grid.className = 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4';
-                container.appendChild(grid);
-                return container;
-            }
-
-            function renderBlocks() {
-                blockContainer.innerHTML = '';
-                const allBlockGroups = [
-                    { title: 'Word Blocks', blocks: wordBlocks, color: 'bg-teal-500', hover: 'hover:bg-teal-600', type: 'block' },
-                    { title: 'Practice Slabs', blocks: slabBlocks, color: 'bg-indigo-500', hover: 'hover:bg-indigo-600', type: 'slab' },
-                    { title: 'Challenge Bars', blocks: barBlocks, color: 'bg-rose-500', hover: 'hover:bg-rose-600', type: 'bar' },
-                ];
-
-                allBlockGroups.forEach(group => {
-                    if (group.blocks.length > 0) {
-                        const groupEl = createGroupContainer(group.title);
-                        const gridEl = groupEl.querySelector('.grid');
-                        
-                        group.blocks.forEach((block, index) => {
-                            const button = document.createElement('button');
-                            const blockNum = index + 1;
-                            
-                            button.className = `${group.color} text-white font-bold py-6 rounded-lg shadow-lg flex flex-col items-center justify-center text-center`;
-                            const originalContent = `<span class="text-2xl">${blockNum}</span><span class="text-xs mt-1">${group.title.split(' ')[1]}</span>`;
-                            button.innerHTML = originalContent;
-                            button.dataset.originalContent = originalContent;
-
-                            let blockTitle;
-                            if(group.type === 'block') blockTitle = `Block ${blockNum}`;
-                            if(group.type === 'slab') blockTitle = `Slab ${blockNum}`;
-                            if(group.type === 'bar') blockTitle = `Bar ${blockNum}`;
-                            button.dataset.blockTitle = blockTitle;
-
-                            button.addEventListener('click', () => startPractice(block, blockTitle));
-                            
-                            if (!button.disabled) {
-                                button.classList.add(group.hover, 'transition-transform', 'transform', 'hover:scale-105');
-                            }
-
-                            gridEl.appendChild(button);
-                        });
-                        blockContainer.appendChild(groupEl);
-                    }
-                });
-            }
-
-            function startPractice(block, title) {
-                clearTimeouts();
-
-                const titleLower = title.toLowerCase();
-                if (titleLower.includes('slab') || titleLower.includes('bar')) {
-                    practiceCounts[title] = (practiceCounts[title] || 0) + 1;
-                }
-
-                currentBlockData = block;
-                wordsInCurrentBlock = [...block];
-                shuffleArray(wordsInCurrentBlock);
-                practiceTitle.textContent = title;
-                currentWordIndex = 0;
-                correctCount = 0;
-                mainMenu.classList.add('hidden');
-                practiceInterface.classList.remove('hidden');
-                loadWord();
-            }
-
-            function loadWord() {
-                if (currentWordIndex < wordsInCurrentBlock.length) {
-                    const word = wordsInCurrentBlock[currentWordIndex];
-                    spellInput.value = '';
-                    spellInput.disabled = false;
-                    spellInput.focus();
-                    spellInput.classList.remove('border-green-500', 'border-red-500');
-                    spellInput.classList.add('border-gray-600', 'focus:border-teal-500');
-                    feedbackMessageEl.classList.add('hidden');
-                    
-                    correctOptionsContainer.classList.add('hidden');
-                    checkBtnContainer.classList.remove('hidden');
-
-                    updateProgress();
-                } else {
-                    showCompletionScreen();
-                }
-            }
-
-            function speakWord() {
-                if ('speechSynthesis' in window && wordsInCurrentBlock[currentWordIndex]) {
-                    const word = wordsInCurrentBlock[currentWordIndex];
-                    const utterance = new SpeechSynthesisUtterance(word);
-                    if (selectedVoice) {
-                        utterance.voice = selectedVoice;
-                    }
-                    utterance.rate = 0.9;
-                    window.speechSynthesis.speak(utterance);
-                } else {
-                    feedbackMessageEl.textContent = 'Sorry, text-to-speech is not supported.';
-                    feedbackMessageEl.classList.add('incorrect');
-                    feedbackMessageEl.classList.remove('hidden');
-                }
-            }
-
-            function checkSpelling() {
-                clearTimeouts();
-                if (spellInput.disabled) return;
-                const typedWord = spellInput.value.trim().toLowerCase();
-                const correctWord = wordsInCurrentBlock[currentWordIndex].toLowerCase();
-                const isCorrect = typedWord === correctWord;
-                const practiceTitleText = practiceTitle.textContent.toLowerCase();
-
-                feedbackMessageEl.classList.remove('hidden');
-                
-                if (isCorrect) {
-                    correctCount++;
-                    
-                    if (practiceTitleText.includes('bar')) {
-                        totalPoints += 4;
-                    } else if (practiceTitleText.includes('slab')) {
-                        totalPoints += 2;
-                    } else {
-                        totalPoints += 10;
-                    }
-                    updateScoreDisplay(true);
-
-                    feedbackMessageEl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Correct!`;
-                    feedbackMessageEl.classList.add('correct');
-                    feedbackMessageEl.classList.remove('incorrect');
-                    spellInput.classList.add('border-green-500');
-                    spellInput.classList.remove('border-red-500', 'border-gray-600', 'focus:border-teal-500');
-                    spellInput.disabled = true;
-
-                    const currentWord = wordsInCurrentBlock[currentWordIndex];
-                    
-                    correctOptionsContainer.classList.remove('hidden');
-                    
-                    addToSlabBtn.disabled = false;
-                    addToSlabBtn.innerHTML = `<i class="fas fa-plus-circle mr-1"></i>Keep Practicing`;
-                    addToSlabBtn.dataset.word = currentWord;
-
-                    checkBtnContainer.classList.add('hidden');
-
-                    nextWordTimeoutId = setTimeout(() => {
-                        currentWordIndex++;
-                        loadWord();
-                    }, 2000);
-
-                } else {
-                    if (practiceTitleText.includes('slab') || practiceTitleText.includes('bar')) {
-                        totalPoints = Math.max(0, totalPoints - 10);
-                    } else {
-                        totalPoints = Math.max(0, totalPoints - 5);
-                    }
-                    updateScoreDisplay(false);
-                    const correctSpelling = wordsInCurrentBlock[currentWordIndex];
-                    
-                    feedbackMessageEl.innerHTML = `
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="inline-block mr-2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
-                        Correct spelling: <strong class="font-semibold">${correctSpelling}</strong>
-                    `;
-                    feedbackMessageEl.classList.add('incorrect');
-                    feedbackMessageEl.classList.remove('correct');
-                    spellInput.disabled = true;
-                    
-                    const incorrectDelay = (practiceTitleText.includes('slab') || practiceTitleText.includes('bar')) ? 1000 : 3000;
-                    
-                    incorrectFeedbackTimeoutId = setTimeout(() => {
-                        currentWordIndex++;
-                        loadWord();
-                    }, incorrectDelay);
-
-                    spellInput.classList.add('border-red-500');
-                    spellInput.classList.remove('border-green-500', 'border-gray-600', 'focus:border-teal-500');
-
-                    const word = wordsInCurrentBlock[currentWordIndex];
-                    
-                    if (practiceTitleText.includes('slab')) {
-                        if (!bars.includes(word)) bars.push(word);
-                    } else if (!practiceTitleText.includes('bar')) {
-                        if (!slabs.includes(word)) slabs.push(word);
-                    }
-                }
-                saveUserData();
-            }
-
-            function showCompletionScreen() {
-                saveUserData();
-                practiceInterface.classList.add('hidden');
-                completionScreen.classList.remove('hidden');
-                finalScoreEl.textContent = `You got ${correctCount} out of ${wordsInCurrentBlock.length} correct.`;
-                finalPointsEl.textContent = `Your new total score is ${totalPoints.toLocaleString()} points.`;
-            }
-
-            function goToMainMenu() {
-                clearTimeouts();
-                
-                if (wordsInCurrentBlock.length > 0) {
-                    saveUserData();
-                }
-
-                wordsInCurrentBlock = [];
-
-                practiceInterface.classList.add('hidden');
-                completionScreen.classList.add('hidden');
-                mainMenu.classList.remove('hidden');
-                loadUserData();
-            }
-
-            function updateProgress() {
-                const totalWords = wordsInCurrentBlock.length;
-                const currentNum = currentWordIndex + 1;
-                progressText.textContent = `Word ${currentNum} of ${totalWords}`;
-                const percent = totalWords > 0 ? (currentNum / totalWords) * 100 : 0;
-                progressBar.style.width = `${percent}%`;
-            }
-            
-            function updateScoreDisplay(animate = false) {
-                 liveScoreEl.textContent = totalPoints.toLocaleString();
-                 mainMenuScore.textContent = totalPoints.toLocaleString();
-                 if (animate) {
-                     liveScoreEl.classList.add('score-updated');
-                     setTimeout(() => liveScoreEl.classList.remove('score-updated'), 300);
-                 }
-            }
-            
-            function setupEventListeners() {
-                checkBtn.addEventListener('click', checkSpelling);
-                spellInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') checkSpelling();
-                });
-                spellInput.addEventListener('focus', () => {
-                    if (spellInput.disabled) return;
-                    clearTimeouts();
-                    if (!feedbackMessageEl.classList.contains('correct')) {
-                        feedbackMessageEl.classList.add('hidden');
-                        feedbackMessageEl.classList.remove('incorrect');
-                    }
-                });
-                speakBtn.addEventListener('click', speakWord);
-                homeBtn.addEventListener('click', goToMainMenu);
-                
-                mainMenuBtn.addEventListener('click', goToMainMenu);
-
-                addToSlabBtn.addEventListener('click', () => {
-                    const wordData = addToSlabBtn.dataset.word;
-                    if (wordData && !slabs.includes(wordData)) {
-                        slabs.push(wordData);
-                        saveUserData();
-                        addToSlabBtn.innerHTML = `<i class="fas fa-check-circle mr-2"></i>Added!`;
-                        addToSlabBtn.disabled = true;
-                    }
-                });
-
-                // The event listener for the delete button has been removed.
-                
-                addWordsBtn.addEventListener('click', () => addWordModal.classList.remove('hidden'));
-                resetScoreBtn.addEventListener('click', () => {
-                    const pin = prompt("To reset your score and all progress, enter the PIN: 2542");
-                    if (pin === "2542") {
-                        totalPoints = 0;
-                        slabs = [];
-                        bars = [];
-                        deletedWords = [];
-                        blockCooldowns = {};
-                        practiceCounts = {};
-                        saveUserData();
-                        alert("Your progress has been reset.");
-                        updateAndRenderBlocks();
-                    } else if (pin) {
-                        alert("Incorrect PIN.");
-                    }
-                });
-                closeModalBtn.addEventListener('click', () => addWordModal.classList.add('hidden'));
-                addWordForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const newWord = document.getElementById('new-word').value.trim();
-                    if(newWord){
-                        allWords.push(newWord);
-                        filterMasterWordList();
-                        
-                        updateAndRenderBlocks();
-                        addWordModal.classList.add('hidden');
-                        addWordForm.reset();
-                        alert(`Word "${newWord}" added! It will be available in the relevant block.`);
-                    }
-                });
-            }
-
-            init();
-        });
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
-
 </html>
-
