@@ -102,17 +102,15 @@
                     
                     const utterance = new SpeechSynthesisUtterance(word);
                     
-                    // Android-এ ভয়েস লিস্ট লোড না হলেও যেন বাংলাতেই উচ্চারণ করে, তাই ডিফল্ট ট্যাগ সেট করা হলো 
-                    utterance.lang = 'bn-IN'; // Google TTS-এ bn-IN বা bn-BD সবচেয়ে বেশি স্ট্যাবল
+                    // iPhone/iOS এর জন্য কঠোরভাবে বাংলা ল্যাঙ্গুয়েজ ট্যাগ সেট করা
+                    utterance.lang = 'bn-BD'; 
                     
                     const voices = window.speechSynthesis.getVoices();
-                    let bestVoice = voices.find(v => 
-                        v.lang === 'bn-BD' || 
-                        v.lang === 'bn-IN' || 
-                        v.lang.includes('bn') || 
-                        v.name.toLowerCase().includes('bangla') || 
-                        v.name.toLowerCase().includes('bengali')
-                    );
+                    
+                    // শুধুমাত্র বাংলা ভয়েস খুঁজবে, অন্য কোনো ভাষার ভয়েস ফলব্যাক হিসেবে নেবে না
+                    let bestVoice = voices.find(v => v.lang === 'bn-BD' || v.lang === 'bn_BD') || 
+                                    voices.find(v => v.lang === 'bn-IN' || v.lang === 'bn_IN') ||
+                                    voices.find(v => v.lang.toLowerCase().includes('bn'));
                     
                     if (bestVoice) { 
                         utterance.voice = bestVoice; 
@@ -286,7 +284,7 @@
                                                     {currentWord}
                                                 </span>
                                             ) : (
-                                                <p className="text-slate-500 text-xs sm:text-sm">শুনতে বা বুঝতে না পারলে '?' বাটনে ক্লিক করুন</p>
+                                                <p className="text-slate-500 text-xs sm:text-sm">শুনতে বা বুঝতেবিধা না পারলে '?' বাটনে ক্লিক করুন</p>
                                             )}
                                         </div>
                                     </div>
