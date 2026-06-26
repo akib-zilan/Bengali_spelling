@@ -68,59 +68,56 @@
             const inputRef = useRef(null);
 
             // Load voices early and initialize permanent blocks
-            useEffect(() => {
-                const loadVoices = () => { window.speechSynthesis.getVoices(); };
-                loadVoices();
-                if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
-                    window.speechSynthesis.onvoiceschanged = loadVoices;
-                }
+           useEffect(() => {
+    const loadVoices = () => {
+        const voices = speechSynthesis.getVoices();
+        console.log("Voices loaded:", voices);
+    };
 
-                // ব্রাউজারের স্টোরেজ থেকে ব্লকগুলো খোঁজার চেষ্টা (নতুন শব্দ যোগ হওয়ায় ভার্সন ৮ ব্যবহার করা হয়েছে)
-                const storedBlocks = localStorage.getItem('bcs_spelling_blocks_v8');
-                if (storedBlocks) {
-                    setBlocks(JSON.parse(storedBlocks));
-                } else {
-                    // প্রথমবার লোড হলে সফল করে ২০টি করে শব্দের ব্লক তৈরি করে সেভ করা
-                    const shuffled = [...initialWordList].sort(() => Math.random() - 0.5);
-                    const newBlocks = [];
-                    for (let i = 0; i < shuffled.length; i += 20) {
-                        const blockLetter = String.fromCharCode(65 + (i / 20)); // A, B, C, D...
-                        newBlocks.push({
-                            id: blockLetter,
-                            title: `ব্লক - ${blockLetter}`,
-                            words: shuffled.slice(i, i + 20)
-                        });
-                    }
-                    localStorage.setItem('bcs_spelling_blocks_v8', JSON.stringify(newBlocks));
-                    setBlocks(newBlocks);
-                }
-            }, []);
+    loadVoices();
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+}, []);
 
             const speakWord = (word) => {
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                    
-                    const utterance = new SpeechSynthesisUtterance(word);
-                    
-                    // iOS-এর ডিফল্ট ইঞ্জিন 'bn-IN' (ইন্ডিয়ান বাংলা) সবচেয়ে ভালো সাপোর্ট করে
-                    utterance.lang = 'bn-IN'; 
-                    
-                    const voices = window.speechSynthesis.getVoices();
-                    
-                    // শুধুমাত্র বাংলা ভয়েস খুঁজবে
-                    let bestVoice = voices.find(v => v.lang === 'bn-BD' || v.lang === 'bn_BD') || 
-                                    voices.find(v => v.lang === 'bn-IN' || v.lang === 'bn_IN') ||
-                                    voices.find(v => v.lang.toLowerCase().includes('bn'));
-                    
-                    if (bestVoice) { 
-                        utterance.voice = bestVoice; 
-                        utterance.lang = bestVoice.lang;
-                    }
-                    
-                    utterance.rate = 0.80; // একটু স্লো করা হয়েছে যাতে বানান বুঝতে সুবিধা হয়
-                    window.speechSynthesis.speak(utterance);
-                }
-            };
+    if (!('speechSynthesis' in window)) return;
+
+    // Stop anything already speaking
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(word);
+
+    // Explicitly request Indian Bengali
+    utterance.lang = "bn-IN";
+    utterance.rate = 0.85;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    const voices = window.speechSynthesis.getVoices();
+
+    // Prefer Indian Bengali
+    let voice =
+        voices.find(v => v.lang === "bn-IN") ||
+        voices.find(v => v.lang === "bn_IN") ||
+
+        // Then any Bengali voice
+        voices.find(v => v.lang.toLowerCase().startsWith("bn")) ||
+
+        // Finally any Indic voice
+        voices.find(v =>
+            ["hi-IN", "mr-IN", "gu-IN"].includes(v.lang)
+        );
+
+    if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+        console.log("Using voice:", voice.name, voice.lang);
+    } else {
+        console.log("No Bengali voice found.");
+    }
+
+    window.speechSynthesis.speak(utterance);
+};
 
             const showWordHint = () => {
                 setShowHint(true);
