@@ -99,28 +99,27 @@
             const speakWord = (word) => {
                 if ('speechSynthesis' in window) {
                     window.speechSynthesis.cancel();
-                    window.speechSynthesis.resume();
                     
                     const utterance = new SpeechSynthesisUtterance(word);
-                    const voices = window.speechSynthesis.getVoices();
                     
-                    // Chrome এবং অন্যান্য ব্রাউজারের জন্য আরও গভীরভাবে বাংলা ভয়েস খোঁজা (bn-BD, bn-IN, bangla, bengali)
+                    // Android-এ ভয়েস লিস্ট লোড না হলেও যেন বাংলাতেই উচ্চারণ করে, তাই ডিফল্ট ট্যাগ সেট করা হলো 
+                    utterance.lang = 'bn-IN'; // Google TTS-এ bn-IN বা bn-BD সবচেয়ে বেশি স্ট্যাবল
+                    
+                    const voices = window.speechSynthesis.getVoices();
                     let bestVoice = voices.find(v => 
+                        v.lang === 'bn-BD' || 
+                        v.lang === 'bn-IN' || 
                         v.lang.includes('bn') || 
                         v.name.toLowerCase().includes('bangla') || 
-                        v.name.toLowerCase().includes('bengali') ||
-                        v.lang === 'bn-BD' || 
-                        v.lang === 'bn-IN'
+                        v.name.toLowerCase().includes('bengali')
                     );
                     
                     if (bestVoice) { 
                         utterance.voice = bestVoice; 
                         utterance.lang = bestVoice.lang;
-                    } else {
-                        utterance.lang = 'bn-BD'; // ভয়েস না পেলেও বাংলা ল্যাঙ্গুয়েজ ট্যাগ ফোর্স করা
                     }
                     
-                    utterance.rate = 0.85;
+                    utterance.rate = 0.80; // একটু স্লো করা হয়েছে যাতে বানান বুঝতে সুবিধা হয়
                     window.speechSynthesis.speak(utterance);
                 }
             };
