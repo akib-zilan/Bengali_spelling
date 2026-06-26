@@ -10,7 +10,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
-    <!-- Babel-এর নির্দিষ্ট ও স্ট্যাবল ভার্সন ব্যবহার করা হয়েছে এরর সমাধানের জন্য -->
+    <!-- Babel-এর নির্দিষ্ট ও স্ট্যাবল ভার্সন ব্যবহার করা হয়েছে এরর সমাধানের জন্য -->
     <script src="https://unpkg.com/@babel/standalone@7.23.5/babel.min.js"></script>
 
     <style>
@@ -67,57 +67,72 @@
             const [completedCount, setCompletedCount] = useState(0);
             const inputRef = useRef(null);
 
-            // Load voices early and initialize permanent blocks
-           useEffect(() => {
-    const loadVoices = () => {
-        const voices = speechSynthesis.getVoices();
-        console.log("Voices loaded:", voices);
-    };
+            useEffect(() => {
+                // Voice loading
+                const loadVoices = () => {
+                    const voices = window.speechSynthesis.getVoices();
+                    console.log("Voices loaded:", voices);
+                };
+                loadVoices();
+                if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
+                    window.speechSynthesis.onvoiceschanged = loadVoices;
+                }
 
-    loadVoices();
-
-    speechSynthesis.onvoiceschanged = loadVoices;
-}, []);
+                // Block initialization
+                const storedBlocks = localStorage.getItem('bcs_spelling_blocks_v8');
+                if (storedBlocks) {
+                    setBlocks(JSON.parse(storedBlocks));
+                } else {
+                    const shuffled = [...initialWordList].sort(() => Math.random() - 0.5);
+                    const newBlocks = [];
+                    for (let i = 0; i < shuffled.length; i += 20) {
+                        const blockLetter = String.fromCharCode(65 + (i / 20)); // A, B, C, D...
+                        newBlocks.push({
+                            id: blockLetter,
+                            title: `ব্লক - ${blockLetter}`,
+                            words: shuffled.slice(i, i + 20)
+                        });
+                    }
+                    localStorage.setItem('bcs_spelling_blocks_v8', JSON.stringify(newBlocks));
+                    setBlocks(newBlocks);
+                }
+            }, []);
 
             const speakWord = (word) => {
-    if (!('speechSynthesis' in window)) return;
+                if (!('speechSynthesis' in window)) return;
 
-    // Stop anything already speaking
-    window.speechSynthesis.cancel();
+                // Stop anything already speaking
+                window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(word);
+                const utterance = new SpeechSynthesisUtterance(word);
 
-    // Explicitly request Indian Bengali
-    utterance.lang = "bn-IN";
-    utterance.rate = 0.85;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
+                // Explicitly request Indian Bengali
+                utterance.lang = "bn-IN";
+                utterance.rate = 0.85;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
 
-    const voices = window.speechSynthesis.getVoices();
+                const voices = window.speechSynthesis.getVoices();
 
-    // Prefer Indian Bengali
-    let voice =
-        voices.find(v => v.lang === "bn-IN") ||
-        voices.find(v => v.lang === "bn_IN") ||
+                // Prefer Indian Bengali
+                let voice =
+                    voices.find(v => v.lang === "bn-IN") ||
+                    voices.find(v => v.lang === "bn_IN") ||
+                    // Then any Bengali voice
+                    voices.find(v => v.lang.toLowerCase().startsWith("bn")) ||
+                    // Finally any Indic voice
+                    voices.find(v => ["hi-IN", "mr-IN", "gu-IN"].includes(v.lang));
 
-        // Then any Bengali voice
-        voices.find(v => v.lang.toLowerCase().startsWith("bn")) ||
+                if (voice) {
+                    utterance.voice = voice;
+                    utterance.lang = voice.lang;
+                    console.log("Using voice:", voice.name, voice.lang);
+                } else {
+                    console.log("No Bengali voice found.");
+                }
 
-        // Finally any Indic voice
-        voices.find(v =>
-            ["hi-IN", "mr-IN", "gu-IN"].includes(v.lang)
-        );
-
-    if (voice) {
-        utterance.voice = voice;
-        utterance.lang = voice.lang;
-        console.log("Using voice:", voice.name, voice.lang);
-    } else {
-        console.log("No Bengali voice found.");
-    }
-
-    window.speechSynthesis.speak(utterance);
-};
+                window.speechSynthesis.speak(utterance);
+            };
 
             const showWordHint = () => {
                 setShowHint(true);
@@ -139,7 +154,7 @@
                 setCurrentWord(firstWord);
                 setQueue(wordsToPractice.slice(1));
                 
-                // iOS Fix: setTimeout বাদ দেওয়া হয়েছে, কারণ iOS-এ অ্যাসিঙ্ক্রোনাস স্পিচ ব্লক বা ডিফল্ট ইংলিশ ভয়েস ট্রিগার করে
+                // iOS Fix: setTimeout বাদ দেওয়া হয়েছে
                 speakWord(firstWord);
             };
 
@@ -173,7 +188,7 @@
                         setQueue(prevQueue => [...prevQueue, currentWord]);
                     }
                 } else {
-                    // দ্বিতীয় Enter (পরবর্তী শব্দে যাওয়া)
+                    // দ্বিতীয় Enter (পরবর্তী শব্দে যাওয়া)
                     handleNext();
                 }
             };
@@ -215,7 +230,7 @@
                                 <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 mb-2 sm:mb-4">অনুশীলন শুরু করুন</h2>
                                 <p className="text-slate-600 text-sm sm:text-base mb-6 px-2">
                                     মোট শব্দ: <span className="font-bold text-slate-800">{initialWordList.length}</span> টি। <br/>
-                                    সহজে শেখার জন্য শব্দগুলোকে স্থায়ী ব্লকে ভাগ করা হয়েছে।
+                                    সহজে শেখার জন্য শব্দগুলোকে স্থায়ী ব্লকে ভাগ করা হয়েছে।
                                 </p>
                                 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 w-full">
@@ -321,11 +336,11 @@
                                                     <div className="flex flex-col items-center gap-3 sm:gap-4">
                                                         <div className="w-full bg-red-100 border border-red-200 text-red-700 p-3 sm:p-4 rounded-xl text-center">
                                                             <div className="flex items-center justify-center gap-2 font-bold mb-1">
-                                                                <XCircle /> ভুল হয়েছে!
+                                                                <XCircle /> ভুল হয়েছে!
                                                             </div>
                                                             <div className="text-slate-600 text-xs sm:text-sm">সঠিক বানানটি হবে:</div>
                                                             <div className="text-2xl sm:text-3xl font-bold mt-1 tracking-wide text-red-800">{currentWord}</div>
-                                                            <p className="text-[10px] sm:text-xs mt-2 opacity-80 text-red-600">শব্দটি আবার অনুশীলনের জন্য শেষে যুক্ত করা হয়েছে।</p>
+                                                            <p className="text-[10px] sm:text-xs mt-2 opacity-80 text-red-600">শব্দটি আবার অনুশীলনের জন্য শেষে যুক্ত করা হয়েছে।</p>
                                                         </div>
                                                         <button type="button" onClick={handleNext} className="w-full py-3 sm:py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-base sm:text-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2">
                                                             পরবর্তী শব্দ <ArrowRight />
@@ -347,7 +362,7 @@
                                 <div className="text-green-500 mb-4 sm:mb-6"><Trophy /></div>
                                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">অভিনন্দন!</h2>
                                 <p className="text-slate-600 text-base sm:text-lg mb-6 sm:mb-8">
-                                    আপনি <strong>{currentBlock?.title}</strong> এর সবকটি শব্দের বানান সফলভাবে আয়ত্ত করেছেন। 
+                                    আপনি <strong>{currentBlock?.title}</strong> এর সবকটি শব্দের বানান সফলভাবে আয়ত্ত করেছেন। 
                                 </p>
                                 <button onClick={() => setAppState('welcome')} className="px-6 sm:px-8 py-3 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-medium transition-all shadow-md active:scale-[0.98] flex items-center gap-2">
                                     <RefreshCw /> অন্য ব্লক অনুশীলন করুন
